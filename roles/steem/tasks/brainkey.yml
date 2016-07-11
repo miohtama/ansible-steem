@@ -1,0 +1,60 @@
+# Setup a private brainkey for mining and store the key on the server
+
+- name: Install brainkey script dependencies
+  apt: pkg={{ item }} update_cache=yes cache_valid_time=86400
+  with_items:
+    - python3-dev
+    - python3-pip
+    - python3.4-venv  # https://bugs.launchpad.net/ubuntu/+source/python3.4/+bug/1532231
+  become: yes
+  become_user: root
+  tags: brainkey
+
+- name: Check if we have virtualenv
+  stat: "path={{virtualenv}}/bin/python"
+  register: virtualenv_stat
+  tags: brainkey
+
+- name: Create Python 3 virtualenv
+  command: "python3 -m venv {{virtualenv}}"
+  when: not virtualenv_stat.stat.exists
+  tags: brainkey
+
+- name: Install steem Python libs
+  command: "{{virtualenv}}/bin/pip install steem pexpect"
+  when: not virtualenv_stat.stat.exists
+  tags: brainkey
+
+- name: Check if we have generated a brain key yet
+  stat: "path={{brainkey_file}}"
+  register: brainkey_stat
+  tags: brainkey
+
+- name: Install brainkey import script
+  copy: "src=create_brainkey.py dest={{brainkey_script}}"
+  when: not brainkey_stat.stat.exists
+  tags: brainkey
+
+- name: Generate initial brainkey
+  command: "{{virtualenv}}/bin/python {{brainkey_script}} {{brainkey_file}} {{steem_dir}}/programs/cli_wallet/cli_wallet"
+  when: not brainkey_stat.stat.exists
+  tags: brainkey
+
+- name: chmod brainkey file to be safer
+  file: "path={{brainkey_file}} mode=go-r"
+
+- name: Install brainkey read script
+  copy: "src=read_wif.py dest={{read_wif_script}}"
+  tags: brainkey
+
+- name: Read brainkey in WIF format for mining config
+  command: "{{virtualenv}}/bin/python {{read_wif_script}} {{brainkey_file}}"
+  register: wif
+  tags: brainkey
+
+- name: Expore WIF private key to Ansible
+  set_fact: "wif_key={{wif.stdout}}"
+  tags: brainkey
+
+
+

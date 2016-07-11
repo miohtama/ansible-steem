@@ -1,0 +1,30 @@
+# http://stackoverflow.com/a/24086375/315168
+- name: Install libboost build prerequisites
+  apt: pkg={{ item }} update_cache=yes cache_valid_time=86400
+  with_items:
+    - build-essential
+    - g++
+    - python-dev
+    - autotools-dev
+    - libicu-dev
+    - libbz2-dev
+    - libboost-all-dev
+  become: yes
+  become_user: root
+
+- name: Create boost build folder
+  file: "path={{boost_dir}} state=directory"
+
+- name: Download updated libboost
+  command: wget -O {{boost_dir}}/boost_1_60_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.60.0/boost_1_60_0.tar.gz/download
+
+- name: Extract boost
+  shell: "cd {{boost_dir}} && tar xzvf boost_1_60_0.tar.gz"
+
+- name: Build boost
+  shell: "cd {{boost_dir}}/boost_1_60_0 && ./bootstrap.sh --prefix=/usr/local"
+
+- name: Install boost
+  shell: "cd {{boost_dir}}/boost_1_60_0 && ./b2 install"
+  become: yes
+  become_user: root

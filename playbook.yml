@@ -1,0 +1,45 @@
+# Playbook to ramp up steem node on Ubuntu 14.04
+# https://steemit.com/steemhelp/@joseph/mining-steem-for-dummies
+
+- hosts: all
+  gather_facts: true
+
+  # These need to be set up before reading default.yml - more variables are generated based on these
+  vars:
+    - seed_nodes:
+      - seed.steemed.net:2001
+      - 52.74.152.79:2001
+
+    # My account name on steemit.com - CHANGE THIS
+    - steem_account: moo9000
+
+    # Build directories of libs and abs
+    - boost_dir: "{{ansible_env.HOME}}/boost"
+    - secp_dir: "{{ansible_env.HOME}}/secp256k1"
+    - steem_dir: "{{ansible_env.HOME}}/steem"
+    - steemd: "{{steem_dir}}/programs/steemd/steemd"
+    # We assume steemd is always started in the home folder
+    - data_dir: "{{ansible_env.HOME}}/witness_node_data_dir"
+    # For deploying steemd config
+    - config_file_src: "config.ini"
+    - config_file_dest: "{{data_dir}}/config.ini"
+    # For deploying the script to restart the miner
+    - startup_script_file_src: "restart-miner.bash"
+    - startup_script_file_dest: "{{steem_dir}}/programs/steemd/restart-miner.bash"
+    # Where we store a dump of our brain key file
+    - brainkey_file: "{{ansible_env.HOME}}/brainkey.json"
+    # Python script to generate initial brain key
+    - brainkey_script: "{{ansible_env.HOME}}/create_brainkey.py"
+    # Python script to read the current WIF key for mining
+    - read_wif_script: "{{ansible_env.HOME}}/read_wif_script.py"
+    # Where we store installed Python libs to run out Python helper scripts
+    - virtualenv: "{{ansible_env.HOME}}/steem_venv"
+
+  # Include vault variables
+  pre_tasks:
+    - include_vars: secrets.yml
+
+  roles:
+  - libboost
+  - steem
+

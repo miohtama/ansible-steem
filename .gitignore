@@ -1,0 +1,5 @@
+venv
+secrets.yml
+hosts.ini
+*.retry
+.vagrant

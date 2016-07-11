@@ -1,0 +1,12 @@
+- name: Checkout secp256k1
+  git: "repo=https://github.com/bitcoin/secp256k1 dest={{secp_dir}} update=yes recursive=yes"
+
+- name: Autogen secp256k1
+  shell: "cd {{secp_dir}} && ./autogen.sh"
+
+- name: Configure secp256k1
+  shell: "cd {{secp_dir}} && ./configure"
+
+- name: Make secp256k1
+  shell: "cd {{secp_dir}} && make"
+

@@ -1,0 +1,7 @@
+- name: Check if we have previous secp256k1 built
+  stat: path=/usr/lib/libboost.a
+  register: secp
+
+- name: Build secp256k1
+  include: build.yml
+  when: not secp.stat.exists

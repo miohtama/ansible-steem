@@ -1,0 +1,7 @@
+- name: Check if we have previous libboost built
+  stat: path=/usr/local/lib/libboost_timer.a
+  register: libboost
+
+- name: Build boost
+  include: build.yml
+  when: not libboost.stat.exists

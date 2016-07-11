@@ -1,0 +1,73 @@
+- name: Install dependencies
+  apt: pkg={{ item }} update_cache=yes cache_valid_time=86400
+  with_items:
+    - build-essential
+    - libtool
+    - autotools-dev
+    - autoconf
+    - pkg-config
+    - libssl-dev
+    - libboost-all-dev
+    - automake
+    - libdb++-dev
+    - libssl-dev
+    - git
+    - cmake
+    - supervisor
+    - doxygen
+    - ncurses-dev
+    - graphviz
+    - libreadline-dev
+    - screen
+  become: yes
+  become_user: root
+
+# force=yes because build makes the repository dirty and have files not in .gitignore
+- name: Git checkout for steem
+  git: "repo=https://github.com/steemit/steem.git dest={{steem_dir}} update=yes recursive=yes force=yes"
+
+- name: Cmake steam
+  shell: "cd {{steem_dir}} && cmake -DENABLE_CONTENT_PATCHING=OFF -DLOW_MEMORY_NODE=ON -DBOOST_ROOT=/usr/local CMakeLists.txt"
+
+- name: Make steam
+  shell: "cd {{steem_dir}} && make"
+
+- name: Check if we have initial data directory
+  stat: "path={{ data_dir }}"
+  register: steemd_path
+
+- name: Create initial data dir
+  shell: "timeout 3 {{steemd}} || exit 0"
+  when: not steemd_path.stat.exists
+
+- name: Deploy restart script
+  template: "src={{ startup_script_file_src }} dest={{ startup_script_file_dest }}"
+
+- name: Make restart script executable
+  file: "path={{ startup_script_file_dest }} mode=u+x"
+
+- name: Setup restart script to run on boot
+  lineinfile:
+    line: "{{ startup_script_file_dest }}"
+    insertbefore: "exit 0"
+    regexp: "restart-miner-in-screen"
+    dest: "/etc/rc.local"
+    create: no
+    state: present
+  become: yes
+  become_user: root
+
+- name: Start steemd for creating brain key
+  command: "{{ startup_script_file_dest }}"
+  become: yes
+  become_user: root
+
+- include: brainkey.yml
+
+- name: Deploy Steem mining config
+  template: "src={{ config_file_src }} dest={{ config_file_dest }}"
+
+- name: Restart steem with full config
+  command: "{{ startup_script_file_dest }}"
+  become: yes
+  become_user: root
